@@ -21,12 +21,13 @@ from sklearn.metrics import euclidean_distances
 
 class MVMDS(BaseEmbed):
 
-    """"
+    r"""
     An implementation of Classical Multiview Multidimensional Scaling for
-    jointly reducing the dimensions of multiple views of data. A Euclidean
-    distance matrix is created for each view, double centered, and the k l
-    argest common eigenvectors between the matrices are returned based on
-    the stepwise estimation of common principal components.
+    jointly reducing the dimensions of multiple views of data.
+
+    A Euclidean distance matrix is created for each view, double centered,
+    and the k largest common eigenvectors between the matrices are returned
+    based on the stepwise estimation of common principal components.
 
     Parameters
     ----------
@@ -50,7 +51,6 @@ class MVMDS(BaseEmbed):
     .. [#1] Trendafilov, Nickolay T. “Stepwise Estimation of Common Principal
             Components.” Computational Statistics &amp; Data Analysis, vol. 54,
             no. 12, 2010, pp. 3446–3457., doi:10.1016/j.csda.2010.03.010.
-
     """
 
     def __init__(self, n_components=None, num_iter=15):
@@ -62,7 +62,7 @@ class MVMDS(BaseEmbed):
 
     def _commonpcs(self, Xs):
 
-        """
+        r"""
         Finds Stepwise Estimation of Common Principal Components as described
         by common Trendafilov implementations based on the following paper:
 
@@ -79,6 +79,49 @@ class MVMDS(BaseEmbed):
         components: numpy.ndarray
             - components shape: (n_samples, n_components)
             MVMDS components of Xs
+
+        Notes
+        -----
+
+        The Common Principal Component (CPC) model states that given :math:'k'
+        normal populations it is assumed that their :math:'p x p' covariance
+        matrices, :math:'$\Sigma_i, i = 1,2,...,k$' can be simultaneously
+        decomposed in the form:
+
+        ..math::
+
+            $$\Sigma_i = QD_i^2Q^T$$
+
+        where :math:'Q' is a common :math:'p x p' matrix that is orthogonal to
+        all :math:'$\Sigma_i$' and :math:'D_i^2' is a positive :math:'p x p'
+        diagonal matrix.
+
+        The matrix :math:'Q' contains all of the CPCs. The CPCs are found in a
+        step-wise process. :math:'S_i' represents the :math:'i-th' sample
+        :math:'p x p' covariance matrix. To find the CPCs we want to solve p
+        identical minimization problems
+
+        ..math::
+
+            $$Minimize \sum_{i=1}^{k}n_ilog(q^TS_iq) $$
+            \newline
+            $$Subject to q^Tq = 1$$
+
+        where :math:'n_i' represents the degrees of freedom in the :math:'i-th'
+        population. This allows us to find the first CPC, :math:'q_p.'
+
+        The next CPC can be found through the same equation:
+
+        ..math::
+
+            $$Minimize \sum_{i=1}^{k}n_ilog(q^TS_iq) $$
+            \newline
+            $$Subject to q^Tq = 1$$
+
+        where this problem is also subject to :math:'q_{p-1}' being orthogonal to
+        :math:'q_p'. This process continues until all CPCs are created that make
+        up :math:'Q'.
+
         """
         n = p = Xs.shape[1]
 
@@ -160,7 +203,32 @@ class MVMDS(BaseEmbed):
         Xs: list of array-likes or numpy.ndarray
                 - Xs length: n_views
                 - Xs[i] shape: (n_samples, n_features_i)
+        Notes
+        -----
+        The fit function performs steps that are common in single-view Classical
+        Multidimensional Scaling.
 
+        For each input view :math:'V_i', the Euclidean distance matrix,
+        :math:'D_i' is calculated. After this, each matrix is double-centered
+
+        ..math::
+
+            {\textstyle B_i=-\frac{1}{2}J_iD_i^{(2)}J_i}
+
+        where :math:'B_i' represents the i-th double-centered matrix and
+        :math:'J_i' is defined as
+
+        ..math::
+
+            {\textstyle J_i=I_i-{\frac {1}{n}}11_i'}
+
+        Here :math:'I_i' represents an identity matrix with the dimensions of
+        :math:'J_i' and :math:'11_i' represents a ones matrix with the
+        dimensions of :math:'J_i'.
+
+        After this, the common principal components are found between all
+        :math:'D_i' matrices
+        
         """
 
         if (self.n_components) > len(Xs[0]):
